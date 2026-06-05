@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Language Translation Tool</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 { text-align: center; color: #4a3f8f; margin-bottom: 30px; font-size: 28px; }
+
+    .lang-selectors { display: flex; gap: 15px; margin-bottom: 20px; }
+
+    select {
+      flex: 1; padding: 10px 14px; border: 2px solid #ddd;
+      border-radius: 8px; font-size: 14px; color: #333;
+      background: #f9f9f9; cursor: pointer;
+    }
+    select:focus { outline: none; border-color: #667eea; }
+
+    .text-areas { display: flex; gap: 15px; margin-bottom: 20px; }
+
+    textarea {
+      flex: 1; height: 180px; padding: 14px; border: 2px solid #ddd;
+      border-radius: 8px; font-size: 15px; resize: none; font-family: inherit;
+    }
+    textarea:focus { outline: none; border-color: #667eea; }
+
+    #output { background: #f0f4ff; color: #333; }
+
+    .btn-row { display: flex; gap: 12px; justify-content: center; }
+
+    button {
+      padding: 12px 30px; border: none; border-radius: 8px;
+      font-size: 15px; cursor: pointer; font-weight: 600; transition: 0.2s;
+    }
+
+    #translateBtn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    #translateBtn:hover { opacity: 0.9; transform: translateY(-1px); }
+    #copyBtn { background: #e9ecef; color: #333; }
+    #copyBtn:hover { background: #dee2e6; }
+    #clearBtn { background: #ffe0e0; color: #c0392b; }
+    #clearBtn:hover { background: #ffc8c8; }
+
+    #detected { text-align: center; color: #888; font-size: 13px; margin-top: 12px; min-height: 18px; }
+    #errorMsg { color: red; text-align: center; margin-top: 10px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌐 Language Translation Tool</h1>
+
+    <div class="lang-selectors">
+      <select id="srcLang">
+        <option value="auto">🔍 Auto Detect</option>
+        {% for code, name in languages.items() %}
+          <option value="{{ code }}">{{ name }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="tgtLang">
+        {% for code, name in languages.items() %}
+          <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="text-areas">
+      <textarea id="inputText" placeholder="Enter text to translate..."></textarea>
+      <textarea id="output" placeholder="Translation will appear here..." readonly></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button id="translateBtn" onclick="translateText()">🔁 Translate</button>
+      <button id="copyBtn" onclick="copyText()">📋 Copy</button>
+      <button id="clearBtn" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+
+    <div id="detected"></div>
+    <div id="errorMsg"></div>
+  </div>
+
+  <script>
+    async function translateText() {
+      const text = document.getElementById('inputText').value;
+      const srcLang = document.getElementById('srcLang').value;
+      const tgtLang = document.getElementById('tgtLang').value;
+      const errorMsg = document.getElementById('errorMsg');
+      const detected = document.getElementById('detected');
+
+      errorMsg.textContent = '';
+      detected.textContent = '';
+      document.getElementById('output').value = 'Translating...';
+
+      const response = await fetch('/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, src_lang: srcLang, tgt_lang: tgtLang })
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        errorMsg.textContent = '❌ ' + data.error;
+        document.getElementById('output').value = '';
+      } else {
+        document.getElementById('output').value = data.translated_text;
+        if (srcLang === 'auto') {
+          detected.textContent = `🔍 Detected Language: ${data.detected_language}`;
+        }
+      }
+    }
+
+    function copyText() {
+      const output = document.getElementById('output').value;
+      if (output) {
+        navigator.clipboard.writeText(output);
+        alert('✅ Copied to clipboard!');
+      }
+    }
+
+    function clearAll() {
+      document.getElementById('inputText').value = '';
+      document.getElementById('output').value = '';
+      document.getElementById('detected').textContent = '';
+      document.getElementById('errorMsg').textContent = '';
+    }
+  </script>
+</body>
+</html>
